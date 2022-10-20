@@ -163,7 +163,9 @@ class CSPDarknet(nn.Module):
         #   利用focus网络结构进行特征提取
         #   640, 640, 3 -> 320, 320, 12 -> 320, 320, 64
         #-----------------------------------------------#
-        self.stem = Focus(3, base_channels, ksize=3, act=act)
+
+        # 四通道
+        self.stem = Focus(4, base_channels, ksize=3, act=act)
 
         #-----------------------------------------------#
         #   完成卷积之后，320, 320, 64 -> 160, 160, 128

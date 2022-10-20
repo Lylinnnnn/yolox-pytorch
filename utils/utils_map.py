@@ -5,11 +5,11 @@ import operator
 import os
 import shutil
 import sys
-try:
-    from pycocotools.coco import COCO
-    from pycocotools.cocoeval import COCOeval
-except:
-    pass
+# try:
+#     from pycocotools.coco import COCO
+#     from pycocotools.cocoeval import COCOeval
+# except:
+#     pass
 import cv2
 import matplotlib
 matplotlib.use('Agg')
@@ -547,7 +547,7 @@ def get_map(MINOVERLAP, draw_plot, score_threhold=0.5, path = './map_out'):
 
                     cv2.imshow("Animation", img)
                     cv2.waitKey(20) 
-                    output_img_path = RESULTS_FILES_PATH + "/images/detections_one_by_one/" + class_name + "_detection" + str(idx) + ".jpg"
+                    output_img_path = RESULTS_FILES_PATH + "/images/detections_one_by_one/" + class_name + "_detection" + str(idx) + ".png"
                     cv2.imwrite(output_img_path, img)
                     cv2.imwrite(img_cumulative_path, img_cumulative)
 
@@ -808,7 +808,7 @@ def preprocess_gt(gt_path, class_names):
         boxes_per_image = []
         image           = {}
         image_id        = os.path.splitext(image_id)[0]
-        image['file_name'] = image_id + '.jpg'
+        image['file_name'] = image_id + '.png'
         image['width']     = 1
         image['height']    = 1
         #-----------------------------------------------------------------#
@@ -913,11 +913,12 @@ def get_coco_map(class_names, path):
             print("未检测到任何目标。")
             return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
-    cocoGt      = COCO(GT_JSON_PATH)
-    cocoDt      = cocoGt.loadRes(DR_JSON_PATH)
-    cocoEval    = COCOeval(cocoGt, cocoDt, 'bbox') 
-    cocoEval.evaluate()
-    cocoEval.accumulate()
-    cocoEval.summarize()
+    # cocoGt      = COCO(GT_JSON_PATH)
+    # cocoDt      = cocoGt.loadRes(DR_JSON_PATH)
+    # cocoEval    = COCOeval(cocoGt, cocoDt, 'bbox')
+    # cocoEval.evaluate()
+    # cocoEval.accumulate()
+    # cocoEval.summarize()
 
-    return cocoEval.stats
+    # return cocoEval.stats
+    return 0;

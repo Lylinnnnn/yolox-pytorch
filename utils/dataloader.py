@@ -65,7 +65,7 @@ class YoloDataset(Dataset):
         #------------------------------#
         #   读取图像并转换成RGB图像
         #------------------------------#
-        image   = Image.open(line[0])
+        image   = Image.open(line[0]).convert("RGBA")
         image   = cvtColor(image)
         #------------------------------#
         #   获得图像的高宽与目标高宽
@@ -88,7 +88,7 @@ class YoloDataset(Dataset):
             #   将图像多余的部分加上灰条
             #---------------------------------#
             image       = image.resize((nw,nh), Image.BICUBIC)
-            new_image   = Image.new('RGB', (w,h), (128,128,128))
+            new_image   = Image.new('RGBA', (w,h), (128,128,128,0))
             new_image.paste(image, (dx, dy))
             image_data  = np.array(new_image, np.float32)
 
@@ -126,7 +126,7 @@ class YoloDataset(Dataset):
         #------------------------------------------#
         dx = int(self.rand(0, w-nw))
         dy = int(self.rand(0, h-nh))
-        new_image = Image.new('RGB', (w,h), (128,128,128))
+        new_image = Image.new('RGBA', (w,h), (128,128,128,0))
         new_image.paste(image, (dx, dy))
         image = new_image
 
@@ -136,31 +136,32 @@ class YoloDataset(Dataset):
         flip = self.rand()<.5
         if flip: image = image.transpose(Image.FLIP_LEFT_RIGHT)
 
-        image_data      = np.array(image, np.uint8)
-        #---------------------------------#
-        #   对图像进行色域变换
-        #   计算色域变换的参数
-        #---------------------------------#
-        r               = np.random.uniform(-1, 1, 3) * [hue, sat, val] + 1
-        #---------------------------------#
-        #   将图像转到HSV上
-        #---------------------------------#
-        hue, sat, val   = cv2.split(cv2.cvtColor(image_data, cv2.COLOR_RGB2HSV))
-        dtype           = image_data.dtype
-        #---------------------------------#
-        #   应用变换
-        #---------------------------------#
-        x       = np.arange(0, 256, dtype=r.dtype)
-        lut_hue = ((x * r[0]) % 180).astype(dtype)
-        lut_sat = np.clip(x * r[1], 0, 255).astype(dtype)
-        lut_val = np.clip(x * r[2], 0, 255).astype(dtype)
+        # image_data      = np.array(image, np.uint8)
+        # #---------------------------------#
+        # #   对图像进行色域变换
+        # #   计算色域变换的参数
+        # #---------------------------------#
+        # r               = np.random.uniform(-1, 1, 3) * [hue, sat, val] + 1
+        # #---------------------------------#
+        # #   将图像转到HSV上
+        # #---------------------------------#
+        # hue, sat, val   = cv2.split(cv2.cvtColor(image_data, cv2.COLOR_RGB2HSV))
+        # dtype           = image_data.dtype
+        # #---------------------------------#
+        # #   应用变换
+        # #---------------------------------#
+        # x       = np.arange(0, 256, dtype=r.dtype)
+        # lut_hue = ((x * r[0]) % 180).astype(dtype)
+        # lut_sat = np.clip(x * r[1], 0, 255).astype(dtype)
+        # lut_val = np.clip(x * r[2], 0, 255).astype(dtype)
+        #
+        # image_data = cv2.merge((cv2.LUT(hue, lut_hue), cv2.LUT(sat, lut_sat), cv2.LUT(val, lut_val)))
+        # image_data = cv2.cvtColor(image_data, cv2.COLOR_HSV2RGB)
+        #
+        # #---------------------------------#
+        # #   对真实框进行调整
+        # #---------------------------------#
 
-        image_data = cv2.merge((cv2.LUT(hue, lut_hue), cv2.LUT(sat, lut_sat), cv2.LUT(val, lut_val)))
-        image_data = cv2.cvtColor(image_data, cv2.COLOR_HSV2RGB)
-
-        #---------------------------------#
-        #   对真实框进行调整
-        #---------------------------------#
         if len(box)>0:
             np.random.shuffle(box)
             box[:, [0,2]] = box[:, [0,2]]*nw/iw + dx
@@ -173,7 +174,7 @@ class YoloDataset(Dataset):
             box_h = box[:, 3] - box[:, 1]
             box = box[np.logical_and(box_w>1, box_h>1)] 
         
-        return image_data, box
+        return image, box
     
     def merge_bboxes(self, bboxes, cutx, cuty):
         merge_bbox = []
@@ -286,7 +287,7 @@ class YoloDataset(Dataset):
                 dx = int(w*min_offset_x)
                 dy = int(h*min_offset_y) - nh
             
-            new_image = Image.new('RGB', (w,h), (128,128,128))
+            new_image = Image.new('RGBA', (w,h), (128,128,128,0))
             new_image.paste(image, (dx, dy))
             image_data = np.array(new_image)
 
@@ -317,33 +318,33 @@ class YoloDataset(Dataset):
         cutx = int(w * min_offset_x)
         cuty = int(h * min_offset_y)
 
-        new_image = np.zeros([h, w, 3])
+        new_image = np.zeros([h, w, 4])
         new_image[:cuty, :cutx, :] = image_datas[0][:cuty, :cutx, :]
         new_image[cuty:, :cutx, :] = image_datas[1][cuty:, :cutx, :]
         new_image[cuty:, cutx:, :] = image_datas[2][cuty:, cutx:, :]
         new_image[:cuty, cutx:, :] = image_datas[3][:cuty, cutx:, :]
 
         new_image       = np.array(new_image, np.uint8)
-        #---------------------------------#
-        #   对图像进行色域变换
-        #   计算色域变换的参数
-        #---------------------------------#
-        r               = np.random.uniform(-1, 1, 3) * [hue, sat, val] + 1
-        #---------------------------------#
-        #   将图像转到HSV上
-        #---------------------------------#
-        hue, sat, val   = cv2.split(cv2.cvtColor(new_image, cv2.COLOR_RGB2HSV))
-        dtype           = new_image.dtype
-        #---------------------------------#
-        #   应用变换
-        #---------------------------------#
-        x       = np.arange(0, 256, dtype=r.dtype)
-        lut_hue = ((x * r[0]) % 180).astype(dtype)
-        lut_sat = np.clip(x * r[1], 0, 255).astype(dtype)
-        lut_val = np.clip(x * r[2], 0, 255).astype(dtype)
-
-        new_image = cv2.merge((cv2.LUT(hue, lut_hue), cv2.LUT(sat, lut_sat), cv2.LUT(val, lut_val)))
-        new_image = cv2.cvtColor(new_image, cv2.COLOR_HSV2RGB)
+        # #---------------------------------#
+        # #   对图像进行色域变换
+        # #   计算色域变换的参数
+        # #---------------------------------#
+        # r               = np.random.uniform(-1, 1, 3) * [hue, sat, val] + 1
+        # #---------------------------------#
+        # #   将图像转到HSV上
+        # #---------------------------------#
+        # hue, sat, val   = cv2.split(cv2.cvtColor(new_image, cv2.COLOR_RGB2HSV))
+        # dtype           = new_image.dtype
+        # #---------------------------------#
+        # #   应用变换
+        # #---------------------------------#
+        # x       = np.arange(0, 256, dtype=r.dtype)
+        # lut_hue = ((x * r[0]) % 180).astype(dtype)
+        # lut_sat = np.clip(x * r[1], 0, 255).astype(dtype)
+        # lut_val = np.clip(x * r[2], 0, 255).astype(dtype)
+        #
+        # new_image = cv2.merge((cv2.LUT(hue, lut_hue), cv2.LUT(sat, lut_sat), cv2.LUT(val, lut_val)))
+        # new_image = cv2.cvtColor(new_image, cv2.COLOR_HSV2RGB)
 
         #---------------------------------#
         #   对框进行进一步的处理
@@ -352,15 +353,15 @@ class YoloDataset(Dataset):
 
         return new_image, new_boxes
 
-    def get_random_data_with_MixUp(self, image_1, box_1, image_2, box_2):
-        new_image = np.array(image_1, np.float32) * 0.5 + np.array(image_2, np.float32) * 0.5
-        if len(box_1) == 0:
-            new_boxes = box_2
-        elif len(box_2) == 0:
-            new_boxes = box_1
-        else:
-            new_boxes = np.concatenate([box_1, box_2], axis=0)
-        return new_image, new_boxes
+    # def get_random_data_with_MixUp(self, image_1, box_1, image_2, box_2):
+    #     new_image = np.array(image_1, np.float32) * 0.5 + np.array(image_2, np.float32) * 0.5
+    #     if len(box_1) == 0:
+    #         new_boxes = box_2
+    #     elif len(box_2) == 0:
+    #         new_boxes = box_1
+    #     else:
+    #         new_boxes = np.concatenate([box_1, box_2], axis=0)
+    #     return new_image, new_boxes
 
 # DataLoader中collate_fn使用
 def yolo_dataset_collate(batch):
@@ -369,6 +370,7 @@ def yolo_dataset_collate(batch):
     for img, box in batch:
         images.append(img)
         bboxes.append(box)
+    # d
     images = torch.from_numpy(np.array(images)).type(torch.FloatTensor)
     bboxes = [torch.from_numpy(ann).type(torch.FloatTensor) for ann in bboxes]
     return images, bboxes
